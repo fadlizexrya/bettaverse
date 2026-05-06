@@ -1,0 +1,47 @@
+services:
+  # App Service (PHP)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bettaverse-app
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    networks:
+      - betta-network
+
+  # Web Server (Nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: bettaverse-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www
+      - ./docker-config/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - betta-network
+
+  # Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: bettaverse-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: bettaverse_db
+      MYSQL_ROOT_PASSWORD: password_rahasia
+    volumes:
+      - betta-db-data:/var/lib/mysql
+    networks:
+      - betta-network
+
+networks:
+  betta-network:
+    driver: bridge
+
+volumes:
+  betta-db-data:
