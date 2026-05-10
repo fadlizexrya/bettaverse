@@ -11,7 +11,7 @@ class KomentarArtikel extends Model
     protected $fillable = [
         'artikel_id',
         'user_id',
-        'komentar'
+        'isi_komentar'
     ];
 
     public function artikel()

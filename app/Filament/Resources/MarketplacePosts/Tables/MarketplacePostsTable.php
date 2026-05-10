@@ -19,7 +19,7 @@ class MarketplacePostsTable
                     ->label('Penjual'),
 
                 TextColumn::make('harga')
-                    ->money('IDR'),
+                    ->money('IDR', locale: 'id_ID'),
 
                 TextColumn::make('stok')
                     ->badge()

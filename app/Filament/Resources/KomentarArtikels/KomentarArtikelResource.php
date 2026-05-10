@@ -18,7 +18,7 @@ class KomentarArtikelResource extends Resource
 
     protected static ?string $navigationLabel = 'Artikel Komentar';
 
-    protected static ?string $recordTitleAttribute = 'komentar';
+    protected static ?string $recordTitleAttribute = 'isi_komentar';
 
     public static function form(Schema $schema): Schema
     {
@@ -32,7 +32,7 @@ class KomentarArtikelResource extends Resource
                     ->relationship('user', 'name')
                     ->required(),
 
-                Forms\Components\Textarea::make('komentar')
+                Forms\Components\Textarea::make('isi_komentar')
                     ->required()
                     ->rows(3),
             ]);
@@ -50,7 +50,7 @@ class KomentarArtikelResource extends Resource
                     ->label('User')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('komentar')
+                Tables\Columns\TextColumn::make('isi_komentar')
                     ->label('Komentar')
                     ->limit(50),
             ]);
