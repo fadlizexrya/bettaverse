@@ -15,6 +15,8 @@ class Artikel extends Model
         'judul',
         'isi',
         'gambar',
+	'slug',
+	'ringkasan',
         'status',
         'user_id',
     ];

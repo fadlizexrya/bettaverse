@@ -11,19 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-     if (!Schema::hasColumn('produks', 'stok')) {
-        Schema::table('produks', function (Blueprint $table) {
-            $table->integer('stok')->default(0);
+        Schema::table('users', function (Blueprint $table) {
+        // Kita tambah kolom role setelah email, default-nya 'user'
+           $table->string('role')->default('user')->after('email');
         });
-     }
     }
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('produks', function (Blueprint $table) {
-            $table->dropColumn('stok');
+    	Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('role');
         });
     }
 };
+

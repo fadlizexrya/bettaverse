@@ -22,8 +22,12 @@ class ProdukResource extends Resource
     public static function form(Schema $form): Schema
     {
         return $form->components([
-            Forms\Components\TextInput::make('nama')
-                ->label('Nama Produk')
+            // Sesuaikan form input agar sinkron dengan DB
+            Forms\Components\TextInput::make('nama_cupang')
+                ->label('Nama Ikan')
+                ->required(),
+            Forms\Components\TextInput::make('jenis_cupang')
+                ->label('Jenis Cupang')
                 ->required(),
             Forms\Components\Textarea::make('deskripsi')
                 ->label('Deskripsi')
@@ -38,8 +42,15 @@ class ProdukResource extends Resource
                 ->numeric()
                 ->default(0)
                 ->required(),
-            Forms\Components\TextInput::make('gambar')
-                ->label('URL Gambar'),
+            Forms\Components\FileUpload::make('foto_cupang')
+                ->label('Upload Foto Ikan')
+                ->image()
+                ->directory('produk-images')
+                ->disk('public'),
+            Forms\Components\TextInput::make('no_wa')
+                ->label('Nomor WhatsApp')
+                ->placeholder('08xxx')
+                ->required(),
             Forms\Components\Select::make('user_id')
                 ->label('Penjual')
                 ->relationship('user', 'name')
@@ -52,26 +63,39 @@ class ProdukResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('gambar')
+                // 1. Perbaiki kolom Gambar (panggil foto_cupang)
+                Tables\Columns\ImageColumn::make('foto_cupang')
                     ->label('Gambar')
+                    ->disk('public')
                     ->circular(),
-                Tables\Columns\TextColumn::make('nama')
+
+                // 2. Perbaiki kolom Nama (panggil nama_cupang)
+                Tables\Columns\TextColumn::make('nama_cupang')
                     ->label('Nama Produk')
                     ->searchable()
                     ->sortable(),
+
+                // 3. Tambahkan No WA biar lengkap
+                Tables\Columns\TextColumn::make('no_wa')
+                    ->label('WhatsApp')
+                    ->searchable(),
+
                 Tables\Columns\TextColumn::make('harga')
                     ->label('Harga')
                     ->money('IDR')
                     ->sortable(),
+
                 Tables\Columns\TextColumn::make('stok')
                     ->label('Stok')
                     ->sortable()
                     ->badge()
                     ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
+
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Penjual')
                     ->searchable()
                     ->sortable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Diposting')
                     ->dateTime('d M Y')
@@ -83,12 +107,12 @@ class ProdukResource extends Resource
                     ->relationship('user', 'name'),
             ])
             ->recordActions([
-    \Filament\Actions\EditAction::make(),
-    \Filament\Actions\DeleteAction::make(),
-])
-->bulkActions([
-    \Filament\Actions\DeleteBulkAction::make(),
-]);
+                \Filament\Actions\EditAction::make(),
+                \Filament\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                \Filament\Actions\DeleteBulkAction::make(),
+            ]);
     }
 
     public static function getPages(): array

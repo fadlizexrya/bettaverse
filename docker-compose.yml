@@ -34,7 +34,7 @@ services:
     container_name: bettaverse-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: bettaverse_db
+      MYSQL_DATABASE: bettaverse
       MYSQL_ROOT_PASSWORD: password_rahasia
     volumes:
       - betta-db-data:/var/lib/mysql

@@ -18,13 +18,15 @@ class User extends Authenticatable implements FilamentUser
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-	'role'
+     protected $fillable = [
+    	'name',
+    	'email',
+    	'password',
+    	'role',
+    	'phone',    // Tambahkan ini
+    	'address',  // Tambahkan ini
+    	'shop_name' // Tambahkan ini jika ada kolomnya di DB
     ];
-
     /**
      * The attributes that should be hidden for serialization.
      *

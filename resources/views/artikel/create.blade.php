@@ -1,13 +1,29 @@
-<h1>Tambah Artikel</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tambah Artikel - BettaVerse</title>
+</head>
+<body>
 
-<form action="/artikels" method="POST">
-    @csrf
+    <h1>Tulis Artikel Baru</h1>
 
-    <label>Judul:</label><br>
-    <input type="text" name="judul" required><br><br>
+    <form action="{{ route('artikel.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
 
-    <label>Isi:</label><br>
-    <textarea name="isi"></textarea><br><br>
+        <label>Judul Artikel:</label><br>
+        <input type="text" name="judul" required><br><br>
 
-    <button type="submit">Simpan</button>
-</form>
+        <label>Foto Artikel (Opsional):</label><br>
+        <input type="file" name="gambar"><br><br>
+
+        <label>Isi Artikel:</label><br>
+        <textarea name="isi" rows="10" required></textarea><br><br>
+
+        <button type="submit">Terbitkan Artikel</button>
+    </form>
+
+    <hr>
+    <a href="{{ route('artikel.index') }}">Kembali ke Daftar Artikel</a>
+
+</body>
+</html>
