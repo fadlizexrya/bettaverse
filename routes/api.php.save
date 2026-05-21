@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\ContentApiController;
+use App\Http\C
 use Illuminate\Support\Facades\Route;
 
 // Auth
 Route::post("/login", [AuthApiController::class, "login"]);
 Route::post("/register", [AuthApiController::class, "register"]);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 // Content
 Route::get("/artikel", [ContentApiController::class, "getArtikel"]);
@@ -15,5 +18,4 @@ Route::get("/marketplace", [ContentApiController::class, "getMarketplace"]);
 // Profile
 Route::middleware("auth:sanctum")->group(function () {
     Route::get("/user-profile", [AuthApiController::class, "profile"]);
-    Route::post("/update-profile", [AuthApiController::class, "updateProfile"]);
 });
