@@ -26,4 +26,4 @@ Route::delete('/produk/{id}', [ProdukController::class, 'destroy'])->name('produ
 
 
 // ================= API =================
-Route::post('/api/artikel', [ArtikelController::class, 'store']);
+

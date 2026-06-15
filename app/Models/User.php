@@ -23,9 +23,9 @@ class User extends Authenticatable implements FilamentUser
     	'email',
     	'password',
     	'role',
-    	'phone',    // Tambahkan ini
-    	'address',  // Tambahkan ini
-    	'shop_name' // Tambahkan ini jika ada kolomnya di DB
+    	'phone',    
+    	'address',  
+    	'shop_name' 
     ];
     /**
      * The attributes that should be hidden for serialization.

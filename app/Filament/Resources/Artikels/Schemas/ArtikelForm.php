@@ -24,7 +24,7 @@ class ArtikelForm
             FileUpload::make('gambar')
                 ->label('Gambar')
                 ->image()
-                ->directory('artikels') // 🔥 rapihin folder
+                ->directory('artikel-images') // 🔥 rapihin folder
                 ->nullable(),
 
             // ✅ TAMBAHAN PENTING (STATUS)

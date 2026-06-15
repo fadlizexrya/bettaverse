@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ArtikelController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ContentApiController;
@@ -28,5 +29,11 @@ Route::middleware("auth:sanctum")->group(function () {
     // Profile
     Route::get("/user-profile", [AuthApiController::class, "profile"]);
     Route::post("/update-profile", [AuthApiController::class, "updateProfile"]);
+    Route::post("/marketplace", [ContentApiController::class, "storeMarketplace"]);
+    Route::delete("/marketplace/{id}", [ContentApiController::class, "destroyMarketplace"]);
+    Route::post("/artikel", [ContentApiController::class, "storeArtikel"]);
+    Route::put("/marketplace/{id}", [ContentApiController::class, "updateMarketplace"]);
+    Route::delete("/artikel/{id}", [ContentApiController::class, "destroyArtikel"]);
+    Route::post('/artikel/{id}/update', [ContentApiController::class, 'updateArtikel']);
 });
 

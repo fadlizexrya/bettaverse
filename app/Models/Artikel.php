@@ -24,7 +24,7 @@ class Artikel extends Model
     // ✅ relasi ke user (penulis)
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     // ✅ relasi ke komentar (PAKAI INI SAJA)

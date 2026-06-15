@@ -14,7 +14,7 @@
         <input type="text" name="judul" required><br><br>
 
         <label>Foto Artikel (Opsional):</label><br>
-        <input type="file" name="gambar"><br><br>
+        <input type="file" name="gambar" accept="image/*"><br><br>
 
         <label>Isi Artikel:</label><br>
         <textarea name="isi" rows="10" required></textarea><br><br>
