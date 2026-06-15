@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -24,6 +25,37 @@ class CheckoutController extends Controller
         MidtransConfig::$isProduction = config('midtrans.is_production');
         MidtransConfig::$isSanitized  = config('midtrans.is_sanitized');
         MidtransConfig::$is3ds        = config('midtrans.is_3ds');
+    }
+
+    /**
+     * GET /api/transactions
+     *
+     * Mengembalikan daftar semua transaksi, diurutkan dari yang terbaru.
+     * Untuk production, sebaiknya filter berdasarkan user yang login.
+     *
+     * --- Contoh Response (200) ---
+     * {
+     *   "status": "success",
+     *   "data": [
+     *     {
+     *       "id": 1,
+     *       "order_id": "ORDER-1718344800-1234",
+     *       "gross_amount": 150000,
+     *       "status": "pending",
+     *       "payment_type": null,
+     *       "created_at": "2026-06-14T05:00:00.000000Z"
+     *     }
+     *   ]
+     * }
+     */
+    public function getTransactions(Request $request)
+    {
+        $transactions = Transaction::orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $transactions,
+        ], 200);
     }
 
     /**
@@ -135,7 +167,18 @@ class CheckoutController extends Controller
         try {
             $snapToken = Snap::getSnapToken($params);
 
-            Log::info('Midtrans Snap Token berhasil dibuat', [
+            // -------------------------------------------------------------
+            // 5. SIMPAN TRANSAKSI ke database dengan status 'pending'
+            // -------------------------------------------------------------
+            Transaction::create([
+                'user_id'      => $request->user()?->id, // null jika tanpa auth
+                'order_id'     => $orderId,
+                'gross_amount' => $grossAmount,
+                'status'       => 'pending',
+                'snap_token'   => $snapToken,
+            ]);
+
+            Log::info('Midtrans Snap Token berhasil dibuat & transaksi disimpan', [
                 'order_id'   => $orderId,
                 'amount'     => $grossAmount,
             ]);
@@ -143,6 +186,7 @@ class CheckoutController extends Controller
             return response()->json([
                 'status'       => 'success',
                 'snap_token'   => $snapToken,
+                'order_id'     => $orderId,
                 'redirect_url' => config('midtrans.is_production')
                     ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}"
                     : "https://app.sandbox.midtrans.com/snap/v2/vtweb/{$snapToken}",
@@ -161,5 +205,123 @@ class CheckoutController extends Controller
                 'debug'   => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * POST /api/webhook/midtrans
+     *
+     * Endpoint untuk menerima notifikasi (webhook) dari Midtrans.
+     * Route ini HARUS di luar middleware auth:sanctum karena dipanggil
+     * langsung oleh server Midtrans, bukan oleh user/Flutter.
+     *
+     * Midtrans mengirim JSON body seperti:
+     * {
+     *   "transaction_time": "2026-06-14 12:00:00",
+     *   "transaction_status": "settlement",
+     *   "transaction_id": "xxx-xxx-xxx",
+     *   "status_message": "midtrans payment notification",
+     *   "status_code": "200",
+     *   "signature_key": "sha512hash...",
+     *   "payment_type": "bank_transfer",
+     *   "order_id": "ORDER-1718344800-1234",
+     *   "merchant_id": "M844777922",
+     *   "gross_amount": "150000.00",
+     *   "fraud_status": "accept",
+     *   ...
+     * }
+     *
+     * Langkah verifikasi:
+     * 1. Hitung signature = SHA512(order_id + status_code + gross_amount + server_key)
+     * 2. Bandingkan dengan signature_key dari body
+     * 3. Jika cocok, update status transaksi di database
+     */
+    public function notificationCallback(Request $request)
+    {
+        // -----------------------------------------------------------------
+        // 1. AMBIL DATA dari body webhook
+        // -----------------------------------------------------------------
+        $orderId           = $request->input('order_id');
+        $statusCode        = $request->input('status_code');
+        $grossAmount       = $request->input('gross_amount');
+        $transactionStatus = $request->input('transaction_status');
+        $paymentType       = $request->input('payment_type');
+        $fraudStatus       = $request->input('fraud_status');
+        $signatureKey      = $request->input('signature_key');
+        $serverKey         = config('midtrans.server_key');
+
+        Log::info('Midtrans Webhook diterima', [
+            'order_id'           => $orderId,
+            'transaction_status' => $transactionStatus,
+            'status_code'        => $statusCode,
+            'payment_type'       => $paymentType,
+        ]);
+
+        // -----------------------------------------------------------------
+        // 2. VALIDASI: Pastikan field wajib ada
+        // -----------------------------------------------------------------
+        if (!$orderId || !$statusCode || !$grossAmount || !$signatureKey) {
+            Log::warning('Midtrans Webhook: field wajib tidak lengkap', $request->all());
+            return response()->json(['message' => 'Invalid notification data'], 400);
+        }
+
+        // -----------------------------------------------------------------
+        // 3. VERIFIKASI SIGNATURE KEY
+        //    Formula: SHA512(order_id + status_code + gross_amount + server_key)
+        // -----------------------------------------------------------------
+        $expectedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+
+        if ($expectedSignature !== $signatureKey) {
+            Log::warning('Midtrans Webhook: Signature key tidak valid', [
+                'order_id' => $orderId,
+                'expected' => $expectedSignature,
+                'received' => $signatureKey,
+            ]);
+            return response()->json(['message' => 'Invalid signature'], 403);
+        }
+
+        // -----------------------------------------------------------------
+        // 4. CARI TRANSAKSI di database
+        // -----------------------------------------------------------------
+        $transaction = Transaction::where('order_id', $orderId)->first();
+
+        if (!$transaction) {
+            Log::warning('Midtrans Webhook: Transaksi tidak ditemukan', ['order_id' => $orderId]);
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        // -----------------------------------------------------------------
+        // 5. UPDATE STATUS berdasarkan transaction_status dari Midtrans
+        //
+        //    Mapping status Midtrans:
+        //    - 'capture'    → Hanya untuk kartu kredit. Cek fraud_status.
+        //    - 'settlement' → Pembayaran berhasil (final).
+        //    - 'pending'    → Menunggu pembayaran.
+        //    - 'deny'       → Ditolak oleh bank/fraud detection.
+        //    - 'expire'     → Kadaluarsa, user tidak bayar tepat waktu.
+        //    - 'cancel'     → Dibatalkan (oleh merchant atau sistem).
+        // -----------------------------------------------------------------
+        $newStatus = match ($transactionStatus) {
+            'capture' => ($fraudStatus === 'accept') ? 'settlement' : 'fraud',
+            'settlement' => 'settlement',
+            'pending' => 'pending',
+            'deny' => 'deny',
+            'expire' => 'expire',
+            'cancel' => 'cancel',
+            default => $transactionStatus, // fallback: simpan apa adanya
+        };
+
+        $transaction->update([
+            'status'       => $newStatus,
+            'payment_type' => $paymentType,
+        ]);
+
+        Log::info('Midtrans Webhook: Status transaksi diperbarui', [
+            'order_id'   => $orderId,
+            'old_status' => $transaction->getOriginal('status'),
+            'new_status' => $newStatus,
+        ]);
+
+        // Midtrans mengharapkan response 200 OK agar tidak mengirim ulang notifikasi
+        return response()->json(['message' => 'OK'], 200);
     }
 }
